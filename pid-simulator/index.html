@@ -1,0 +1,998 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PID温度控制仿真系统 v1.0</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', 'Microsoft YaHei', sans-serif;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            min-height: 100vh;
+            color: #eee;
+        }
+
+        /* 登录界面 */
+        .login-container {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+        }
+
+        .login-box {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            padding: 40px;
+            border-radius: 20px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+            width: 400px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .login-box h1 {
+            text-align: center;
+            margin-bottom: 30px;
+            color: #00d4ff;
+            font-size: 28px;
+        }
+
+        .login-box h2 {
+            text-align: center;
+            margin-bottom: 30px;
+            color: #888;
+            font-size: 16px;
+            font-weight: normal;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            color: #aaa;
+            font-size: 14px;
+        }
+
+        .form-group input {
+            width: 100%;
+            padding: 12px 15px;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 8px;
+            background: rgba(0, 0, 0, 0.2);
+            color: #fff;
+            font-size: 14px;
+            transition: all 0.3s;
+        }
+
+        .form-group input:focus {
+            outline: none;
+            border-color: #00d4ff;
+            box-shadow: 0 0 10px rgba(0, 212, 255, 0.3);
+        }
+
+        .btn {
+            width: 100%;
+            padding: 14px;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            cursor: pointer;
+            transition: all 0.3s;
+            font-weight: 600;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #00d4ff, #0099cc);
+            color: #fff;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 20px rgba(0, 212, 255, 0.4);
+        }
+
+        .btn-secondary {
+            background: rgba(255, 255, 255, 0.1);
+            color: #ccc;
+            margin-top: 10px;
+        }
+
+        .btn-secondary:hover {
+            background: rgba(255, 255, 255, 0.2);
+        }
+
+        .error-message {
+            color: #ff6b6b;
+            text-align: center;
+            margin-top: 15px;
+            font-size: 14px;
+            min-height: 20px;
+        }
+
+        .login-info {
+            margin-top: 30px;
+            padding: 15px;
+            background: rgba(0, 0, 0, 0.2);
+            border-radius: 8px;
+            font-size: 12px;
+            color: #888;
+        }
+
+        .login-info p {
+            margin: 5px 0;
+        }
+
+        /* 主界面 */
+        .main-container {
+            display: none;
+            min-height: 100vh;
+        }
+
+        /* 菜单栏 */
+        .menu-bar {
+            background: rgba(0, 0, 0, 0.3);
+            padding: 0 20px;
+            display: flex;
+            align-items: center;
+            height: 50px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .menu-item {
+            position: relative;
+            padding: 0 15px;
+            height: 100%;
+            display: flex;
+            align-items: center;
+            cursor: pointer;
+            color: #ccc;
+            font-size: 14px;
+            transition: all 0.2s;
+        }
+
+        .menu-item:hover {
+            background: rgba(255, 255, 255, 0.1);
+            color: #fff;
+        }
+
+        .menu-item.active {
+            color: #00d4ff;
+        }
+
+        .dropdown {
+            display: none;
+            position: absolute;
+            top: 100%;
+            left: 0;
+            background: rgba(30, 30, 50, 0.95);
+            backdrop-filter: blur(10px);
+            min-width: 180px;
+            border-radius: 0 0 8px 8px;
+            box-shadow: 0 5px 20px rgba(0, 0, 0, 0.3);
+            z-index: 1000;
+        }
+
+        .menu-item:hover .dropdown {
+            display: block;
+        }
+
+        .dropdown-item {
+            padding: 12px 20px;
+            cursor: pointer;
+            transition: all 0.2s;
+            font-size: 13px;
+        }
+
+        .dropdown-item:hover {
+            background: rgba(0, 212, 255, 0.2);
+            color: #00d4ff;
+        }
+
+        .dropdown-item.admin-only {
+            display: none;
+        }
+
+        .user-info {
+            margin-left: auto;
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            font-size: 13px;
+            color: #888;
+        }
+
+        .user-role {
+            background: rgba(0, 212, 255, 0.2);
+            color: #00d4ff;
+            padding: 4px 10px;
+            border-radius: 12px;
+            font-size: 11px;
+        }
+
+        /* 主内容区 */
+        .main-content {
+            display: flex;
+            padding: 20px;
+            gap: 20px;
+            height: calc(100vh - 50px);
+        }
+
+        /* 左侧面板 */
+        .left-panel {
+            width: 320px;
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+
+        .panel {
+            background: rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(10px);
+            border-radius: 12px;
+            padding: 20px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .panel-title {
+            font-size: 16px;
+            color: #00d4ff;
+            margin-bottom: 15px;
+            padding-bottom: 10px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .panel-title::before {
+            content: '';
+            width: 4px;
+            height: 18px;
+            background: linear-gradient(180deg, #00d4ff, #0099cc);
+            border-radius: 2px;
+        }
+
+        .param-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 12px;
+        }
+
+        .param-row label {
+            font-size: 13px;
+            color: #aaa;
+        }
+
+        .param-row input[type="number"],
+        .param-row select {
+            width: 120px;
+            padding: 8px 12px;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 6px;
+            background: rgba(0, 0, 0, 0.2);
+            color: #fff;
+            font-size: 13px;
+        }
+
+        .param-row input[type="number"]:focus,
+        .param-row select:focus {
+            outline: none;
+            border-color: #00d4ff;
+        }
+
+        .param-row input:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .btn-control {
+            width: 100%;
+            padding: 12px;
+            margin-top: 10px;
+            border: none;
+            border-radius: 8px;
+            font-size: 14px;
+            cursor: pointer;
+            transition: all 0.3s;
+            font-weight: 600;
+        }
+
+        .btn-start {
+            background: linear-gradient(135deg, #00d4ff, #0099cc);
+            color: #fff;
+        }
+
+        .btn-start:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 20px rgba(0, 212, 255, 0.4);
+        }
+
+        .btn-stop {
+            background: linear-gradient(135deg, #ff6b6b, #ee5a5a);
+            color: #fff;
+        }
+
+        .btn-pause {
+            background: linear-gradient(135deg, #ffa502, #ff7f00);
+            color: #fff;
+        }
+
+        .btn-interference {
+            background: linear-gradient(135deg, #9b59b6, #8e44ad);
+            color: #fff;
+        }
+
+        .btn-interference:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .btn-interference.active {
+            animation: pulse 1s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.7; }
+        }
+
+        /* 右侧图表区 */
+        .right-panel {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+
+        .chart-container {
+            flex: 1;
+            background: rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(10px);
+            border-radius: 12px;
+            padding: 20px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            position: relative;
+        }
+
+        .chart-canvas {
+            width: 100%;
+            height: 100%;
+        }
+
+        .legend {
+            display: flex;
+            gap: 20px;
+            margin-bottom: 10px;
+            flex-wrap: wrap;
+        }
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 12px;
+            color: #aaa;
+            cursor: pointer;
+            user-select: none;
+        }
+
+        .legend-color {
+            width: 20px;
+            height: 3px;
+            border-radius: 2px;
+        }
+
+        .legend-item.hidden {
+            opacity: 0.4;
+        }
+
+        /* 数据显示 */
+        .data-display {
+            display: grid;
+            grid-template-columns: repeat(5, 1fr);
+            gap: 15px;
+            padding: 15px;
+            background: rgba(0, 0, 0, 0.2);
+            border-radius: 12px;
+        }
+
+        .data-item {
+            text-align: center;
+            padding: 15px;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 10px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .data-label {
+            font-size: 12px;
+            color: #888;
+            margin-bottom: 8px;
+        }
+
+        .data-value {
+            font-size: 24px;
+            font-weight: 700;
+            font-family: 'Courier New', monospace;
+        }
+
+        .data-value.sv { color: #ff4444; }
+        .data-value.pv { color: #00ff88; }
+        .data-value.u { color: #4488ff; }
+        .data-value.error { color: #00ffff; }
+        .data-value.interference { color: #ff00ff; }
+
+        /* 弹窗 */
+        .modal-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.7);
+            backdrop-filter: blur(5px);
+            z-index: 2000;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .modal-overlay.active {
+            display: flex;
+        }
+
+        .modal {
+            background: rgba(30, 30, 50, 0.95);
+            backdrop-filter: blur(20px);
+            border-radius: 16px;
+            padding: 30px;
+            width: 500px;
+            max-height: 80vh;
+            overflow-y: auto;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+        }
+
+        .modal-title {
+            font-size: 20px;
+            color: #00d4ff;
+            margin-bottom: 20px;
+            padding-bottom: 15px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .modal-close {
+            float: right;
+            font-size: 24px;
+            color: #888;
+            cursor: pointer;
+            margin-top: -5px;
+        }
+
+        .modal-close:hover {
+            color: #fff;
+        }
+
+        /* 用户管理表格 */
+        .user-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 15px;
+        }
+
+        .user-table th,
+        .user-table td {
+            padding: 12px;
+            text-align: left;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .user-table th {
+            color: #00d4ff;
+            font-weight: 600;
+            font-size: 13px;
+        }
+
+        .user-table td {
+            font-size: 13px;
+            color: #ccc;
+        }
+
+        .user-table tr:hover td {
+            background: rgba(255, 255, 255, 0.05);
+        }
+
+        .btn-small {
+            padding: 6px 12px;
+            border: none;
+            border-radius: 4px;
+            font-size: 12px;
+            cursor: pointer;
+            margin-right: 5px;
+        }
+
+        .btn-edit {
+            background: rgba(0, 212, 255, 0.2);
+            color: #00d4ff;
+        }
+
+        .btn-delete {
+            background: rgba(255, 107, 107, 0.2);
+            color: #ff6b6b;
+        }
+
+        .btn-add {
+            background: rgba(0, 255, 136, 0.2);
+            color: #00ff88;
+            margin-bottom: 15px;
+        }
+
+        /* 历史曲线窗口 */
+        .history-controls {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 15px;
+            flex-wrap: wrap;
+        }
+
+        .history-controls input,
+        .history-controls select {
+            padding: 8px 12px;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 6px;
+            background: rgba(0, 0, 0, 0.2);
+            color: #fff;
+            font-size: 13px;
+        }
+
+        .btn-export {
+            background: linear-gradient(135deg, #00ff88, #00cc6a);
+            color: #fff;
+            padding: 8px 16px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 13px;
+        }
+
+        /* 关于弹窗 */
+        .about-content {
+            text-align: center;
+            padding: 20px;
+        }
+
+        .about-content h2 {
+            color: #00d4ff;
+            margin-bottom: 15px;
+        }
+
+        .about-content p {
+            color: #aaa;
+            margin: 10px 0;
+            font-size: 14px;
+        }
+
+        /* 提示信息 */
+        .toast {
+            position: fixed;
+            top: 70px;
+            right: 20px;
+            padding: 15px 25px;
+            border-radius: 8px;
+            font-size: 14px;
+            z-index: 3000;
+            transform: translateX(150%);
+            transition: transform 0.3s ease;
+        }
+
+        .toast.show {
+            transform: translateX(0);
+        }
+
+        .toast.success {
+            background: rgba(0, 255, 136, 0.9);
+            color: #000;
+        }
+
+        .toast.error {
+            background: rgba(255, 107, 107, 0.9);
+            color: #fff;
+        }
+
+        .toast.info {
+            background: rgba(0, 212, 255, 0.9);
+            color: #000;
+        }
+
+        /* 复选框样式 */
+        input[type="checkbox"] {
+            width: 18px;
+            height: 18px;
+            accent-color: #00d4ff;
+        }
+
+        /* 范围滑块 */
+        input[type="range"] {
+            width: 100%;
+            height: 6px;
+            border-radius: 3px;
+            background: rgba(255, 255, 255, 0.1);
+            outline: none;
+            -webkit-appearance: none;
+        }
+
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            background: #00d4ff;
+            cursor: pointer;
+        }
+
+        .range-value {
+            text-align: center;
+            font-size: 12px;
+            color: #00d4ff;
+            margin-top: 5px;
+        }
+    </style>
+</head>
+<body>
+    <!-- 登录界面 -->
+    <div class="login-container" id="loginContainer">
+        <div class="login-box">
+            <h1>PID温度控制仿真系统</h1>
+            <h2>v1.0 正式版</h2>
+            <form id="loginForm">
+                <div class="form-group">
+                    <label>用户ID</label>
+                    <input type="text" id="username" placeholder="请输入用户ID" required>
+                </div>
+                <div class="form-group">
+                    <label>密码</label>
+                    <input type="password" id="password" placeholder="请输入密码" required>
+                </div>
+                <button type="submit" class="btn btn-primary">登录</button>
+                <div class="error-message" id="loginError"></div>
+            </form>
+            <div class="login-info">
+                <p><strong>默认账号：</strong></p>
+                <p>管理员：admin / admin123</p>
+                <p>普通用户：user / user123</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- 主界面 -->
+    <div class="main-container" id="mainContainer">
+        <!-- 菜单栏 -->
+        <div class="menu-bar">
+            <div class="menu-item">
+                系统
+                <div class="dropdown">
+                    <div class="dropdown-item" onclick="logout()">退出登录</div>
+                    <div class="dropdown-item" onclick="exitApp()">退出程序</div>
+                </div>
+            </div>
+            <div class="menu-item">
+                功能
+                <div class="dropdown">
+                    <div class="dropdown-item" onclick="showHistory()">历史曲线</div>
+                </div>
+            </div>
+            <div class="menu-item">
+                用户管理
+                <div class="dropdown">
+                    <div class="dropdown-item" onclick="showChangePassword()">修改密码</div>
+                    <div class="dropdown-item admin-only" onclick="showUserManagement()">管理用户</div>
+                </div>
+            </div>
+            <div class="menu-item">
+                帮助
+                <div class="dropdown">
+                    <div class="dropdown-item" onclick="showAbout()">关于软件</div>
+                </div>
+            </div>
+            <div class="user-info">
+                <span id="currentUserDisplay"></span>
+                <span class="user-role" id="currentRoleDisplay"></span>
+            </div>
+        </div>
+
+        <!-- 主内容区 -->
+        <div class="main-content">
+            <!-- 左侧面板 -->
+            <div class="left-panel">
+                <!-- 控制策略 -->
+                <div class="panel">
+                    <div class="panel-title">控制策略</div>
+                    <div class="param-row">
+                        <label>当前策略</label>
+                        <select id="controlStrategy">
+                            <option value="pid_unlimited">普通PID(无限幅)</option>
+                            <option value="pid_single" selected>单回路PID</option>
+                            <option value="feedforward">前馈+反馈</option>
+                            <option value="cascade">串级PID</option>
+                            <option value="cascade_feedforward">串级+前馈</option>
+                        </select>
+                    </div>
+                    <div class="param-row">
+                        <label>手动/自动</label>
+                        <select id="autoManual">
+                            <option value="auto" selected>自动模式</option>
+                            <option value="manual">手动模式</option>
+                        </select>
+                    </div>
+                </div>
+
+                <!-- 设定值 -->
+                <div class="panel">
+                    <div class="panel-title">设定值与输出</div>
+                    <div class="param-row">
+                        <label>SV 设定温度 (°C)</label>
+                        <input type="number" id="svValue" value="20" min="0" max="30" step="0.1">
+                    </div>
+                    <div class="param-row">
+                        <label>控制量 u</label>
+                        <input type="number" id="uValue" value="0" disabled>
+                    </div>
+                    <div class="param-row">
+                        <label>手动设定 u</label>
+                        <input type="number" id="manualU" value="0" min="-30" max="30" step="0.1">
+                    </div>
+                </div>
+
+                <!-- PID参数 -->
+                <div class="panel">
+                    <div class="panel-title">PID参数</div>
+                    <div class="param-row">
+                        <label>Kp 比例增益</label>
+                        <input type="number" id="kpValue" value="2.0" min="0" step="0.1">
+                    </div>
+                    <div class="param-row">
+                        <label>Ti 积分时间</label>
+                        <input type="number" id="tiValue" value="2.0" min="0.01" step="0.1">
+                    </div>
+                    <div class="param-row">
+                        <label>Td 微分时间</label>
+                        <input type="number" id="tdValue" value="0.5" min="0" step="0.01">
+                    </div>
+                    <div id="cascadeParams" style="display: none;">
+                        <div class="param-row" style="margin-top: 15px;">
+                            <label style="color: #00d4ff;">内环 Kp</label>
+                            <input type="number" id="kpInner" value="1.0" min="0" step="0.1">
+                        </div>
+                        <div class="param-row">
+                            <label style="color: #00d4ff;">内环 Ti</label>
+                            <input type="number" id="tiInner" value="2.0" min="0.01" step="0.1">
+                        </div>
+                        <div class="param-row">
+                            <label style="color: #00d4ff;">内环 Td</label>
+                            <input type="number" id="tdInner" value="0.0" min="0" step="0.01">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 被控对象参数 -->
+                <div class="panel">
+                    <div class="panel-title">被控对象参数</div>
+                    <div class="param-row">
+                        <label>T1 时间常数1</label>
+                        <input type="number" id="t1Value" value="1.0" min="0.01" step="0.1">
+                    </div>
+                    <div class="param-row">
+                        <label>T2 时间常数2</label>
+                        <input type="number" id="t2Value" value="2.0" min="0.01" step="0.1">
+                    </div>
+                    <div class="param-row">
+                        <label>增益 K</label>
+                        <input type="number" id="gainValue" value="1.0" min="0.01" step="0.1">
+                    </div>
+                </div>
+
+                <!-- 干扰 -->
+                <div class="panel">
+                    <div class="panel-title">干扰设置</div>
+                    <div class="param-row">
+                        <label>方波振幅</label>
+                        <input type="number" id="interferenceAmp" value="0" step="0.1">
+                    </div>
+                    <div class="param-row">
+                        <label>持续时间 (秒)</label>
+                        <input type="number" id="interferenceDuration" value="5" min="1" step="1">
+                    </div>
+                    <button class="btn-control btn-interference" id="btnInterference" onclick="applyInterference()">
+                        施加方波干扰
+                    </button>
+                </div>
+
+                <!-- 控制按钮 -->
+                <div class="panel">
+                    <button class="btn-control btn-start" id="btnStart" onclick="startSimulation()">启动仿真</button>
+                    <button class="btn-control btn-pause" id="btnPause" onclick="pauseSimulation()" style="display: none;">暂停仿真</button>
+                    <button class="btn-control btn-stop" id="btnStop" onclick="stopSimulation()" style="display: none;">停止仿真</button>
+                </div>
+            </div>
+
+            <!-- 右侧面板 -->
+            <div class="right-panel">
+                <!-- 波形显示 -->
+                <div class="chart-container">
+                    <div class="legend">
+                        <div class="legend-item" onclick="toggleCurve('sv')">
+                            <div class="legend-color" style="background: #ff4444;"></div>
+                            <span>SV (设定值)</span>
+                        </div>
+                        <div class="legend-item" onclick="toggleCurve('pv')">
+                            <div class="legend-color" style="background: #00ff88;"></div>
+                            <span>PV (过程值)</span>
+                        </div>
+                        <div class="legend-item" onclick="toggleCurve('u')">
+                            <div class="legend-color" style="background: #4488ff;"></div>
+                            <span>u (控制量)</span>
+                        </div>
+                        <div class="legend-item" onclick="toggleCurve('error')">
+                            <div class="legend-color" style="background: #00ffff;"></div>
+                            <span>误差</span>
+                        </div>
+                        <div class="legend-item" onclick="toggleCurve('interference')">
+                            <div class="legend-color" style="background: #ff00ff;"></div>
+                            <span>干扰</span>
+                        </div>
+                    </div>
+                    <canvas id="chartCanvas" class="chart-canvas"></canvas>
+                </div>
+
+                <!-- 实时数据显示 -->
+                <div class="data-display">
+                    <div class="data-item">
+                        <div class="data-label">SV 设定值</div>
+                        <div class="data-value sv" id="displaySV">20.0</div>
+                    </div>
+                    <div class="data-item">
+                        <div class="data-label">PV 过程值</div>
+                        <div class="data-value pv" id="displayPV">0.0</div>
+                    </div>
+                    <div class="data-item">
+                        <div class="data-label">控制量 u</div>
+                        <div class="data-value u" id="displayU">0.0</div>
+                    </div>
+                    <div class="data-item">
+                        <div class="data-label">误差</div>
+                        <div class="data-value error" id="displayError">20.0</div>
+                    </div>
+                    <div class="data-item">
+                        <div class="data-label">当前干扰</div>
+                        <div class="data-value interference" id="displayInterference">0.0</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 修改密码弹窗 -->
+    <div class="modal-overlay" id="changePasswordModal">
+        <div class="modal">
+            <div class="modal-title">
+                <span class="modal-close" onclick="closeModal('changePasswordModal')">&times;</span>
+                修改密码
+            </div>
+            <div class="form-group">
+                <label>当前密码</label>
+                <input type="password" id="oldPassword" placeholder="输入当前密码">
+            </div>
+            <div class="form-group">
+                <label>新密码</label>
+                <input type="password" id="newPassword" placeholder="输入新密码">
+            </div>
+            <div class="form-group">
+                <label>确认新密码</label>
+                <input type="password" id="confirmPassword" placeholder="再次输入新密码">
+            </div>
+            <button class="btn btn-primary" onclick="changePassword()">确认修改</button>
+        </div>
+    </div>
+
+    <!-- 用户管理弹窗 -->
+    <div class="modal-overlay" id="userManagementModal">
+        <div class="modal" style="width: 700px;">
+            <div class="modal-title">
+                <span class="modal-close" onclick="closeModal('userManagementModal')">&times;</span>
+                用户管理
+            </div>
+            <button class="btn-small btn-add" onclick="showAddUser()">+ 添加用户</button>
+            <table class="user-table">
+                <thead>
+                    <tr>
+                        <th>用户ID</th>
+                        <th>角色</th>
+                        <th>操作</th>
+                    </tr>
+                </thead>
+                <tbody id="userTableBody"></tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- 添加用户弹窗 -->
+    <div class="modal-overlay" id="addUserModal">
+        <div class="modal">
+            <div class="modal-title">
+                <span class="modal-close" onclick="closeModal('addUserModal')">&times;</span>
+                添加用户
+            </div>
+            <div class="form-group">
+                <label>用户ID</label>
+                <input type="text" id="newUserId" placeholder="输入用户ID">
+            </div>
+            <div class="form-group">
+                <label>密码</label>
+                <input type="password" id="newUserPassword" placeholder="输入密码">
+            </div>
+            <div class="form-group">
+                <label>角色</label>
+                <select id="newUserRole">
+                    <option value="user">普通用户</option>
+                    <option value="admin">管理员</option>
+                </select>
+            </div>
+            <button class="btn btn-primary" onclick="addUser()">确认添加</button>
+        </div>
+    </div>
+
+    <!-- 历史曲线弹窗 -->
+    <div class="modal-overlay" id="historyModal">
+        <div class="modal" style="width: 900px; height: 80vh;">
+            <div class="modal-title">
+                <span class="modal-close" onclick="closeModal('historyModal')">&times;</span>
+                历史曲线
+            </div>
+            <div class="history-controls">
+                <input type="datetime-local" id="historyStart">
+                <span style="color: #888;">至</span>
+                <input type="datetime-local" id="historyEnd">
+                <button class="btn-small btn-primary" onclick="queryHistory()">查询</button>
+                <button class="btn-export" onclick="exportHistory()">导出Excel</button>
+            </div>
+            <div style="flex: 1; background: rgba(0,0,0,0.2); border-radius: 8px; height: 400px;">
+                <canvas id="historyCanvas" style="width: 100%; height: 100%;"></canvas>
+            </div>
+        </div>
+    </div>
+
+    <!-- 关于弹窗 -->
+    <div class="modal-overlay" id="aboutModal">
+        <div class="modal">
+            <div class="modal-title">
+                <span class="modal-close" onclick="closeModal('aboutModal')">&times;</span>
+                关于软件
+            </div>
+            <div class="about-content">
+                <h2>PID温度控制仿真系统</h2>
+                <p>版本：v1.0 正式版</p>
+                <p>开发语言：HTML5 + JavaScript</p>
+                <p>功能：PID控制算法仿真教学</p>
+                <p>支持5种控制策略，实时波形显示</p>
+                <p style="margin-top: 30px; color: #666;">2024 版权所有</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast提示 -->
+    <div class="toast" id="toast"></div>
+
+    <script src="simulator.js"></script>
+</body>
+</html>
